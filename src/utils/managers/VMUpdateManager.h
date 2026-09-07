@@ -13,8 +13,9 @@
 @property (nonatomic, copy) NSString *latestVersionStr;
 @property (nonatomic, copy) NSString *releaseNotes;
 @property (nonatomic, copy) NSString *downloadURL;
+@property (nonatomic, copy) NSString *tipaURL;
+@property (nonatomic, strong) UIDocumentInteractionController *docInteraction;
 
-- (void)performAutoCheck;
 
 - (void)checkForUpdateManual:(BOOL)manual completion:(void(^)(void))completion;
 

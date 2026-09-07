@@ -841,6 +841,10 @@ std::map<std::string, std::string> Lang_EN::getStrings() {
     {"Backup_Count_Fmt", "%lu backups"},
 
 
+    {"Update_Download_Tipa", "Download TIPA"},
+    {"Update_Downloading", "Downloading…"},
+    {"Update_Download_Failed", "Download failed. Check your network."},
+
   };
 }
 

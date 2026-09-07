@@ -191,10 +191,6 @@ static NSString *const kVMTabOrderKey = @"vm_bottom_tab_order";
   lp.minimumPressDuration = 0.5;
   [self.tabBar addGestureRecognizer:lp];
   
-  dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.5 * NSEC_PER_SEC)),
-                 dispatch_get_main_queue(), ^{
-    [[VMUpdateManager shared] performAutoCheck];
-  });
 }
 
 - (BOOL)shouldAutorotate {

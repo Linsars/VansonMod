@@ -841,6 +841,10 @@ std::map<std::string, std::string> Lang_CN::getStrings() {
     {"Backup_Count_Fmt", "%lu 个备份"},
 
 
+    {"Update_Download_Tipa", "下载安装包"},
+    {"Update_Downloading", "下载中…"},
+    {"Update_Download_Failed", "下载失败，请检查网络。"},
+
   };
 }
 

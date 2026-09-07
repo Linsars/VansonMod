@@ -2,7 +2,7 @@
 #import "include/VMLocalization.h"
 
 #define TR(key) ([[VMLocalization shared] localizedString:key])
-#define GITHUB_API_URL @"https://api.github.com/repos/vaenshine/VansonMod/releases/latest"
+#define GITHUB_API_URL @"https://api.github.com/repos/Linsars/VansonMod/releases/latest"
 
 @implementation VMUpdateManager
 
@@ -11,13 +11,6 @@
   static dispatch_once_t once;
   dispatch_once(&once, ^{ s = [self new]; });
   return s;
-}
-
-- (void)performAutoCheck {
-  // 防重复：语言切换等会重建 RootVC 多次触发；一次会话查一次就够
-  if (_autoCheckDone) return;
-  _autoCheckDone = YES;
-  [self checkForUpdateManual:NO completion:nil];
 }
 
 - (void)checkForUpdateManual:(BOOL)manual completion:(void (^)(void))completion {
@@ -49,6 +42,14 @@
           if (jsonErr || !json) {
             if (manual) [self showAlert:TR(@"Alert_Error") msg:TR(@"Err_Invalid_JSON")];
             return;
+          }
+
+          for (NSDictionary *asset in json[@"assets"] ?: @[]) {
+            NSString *name = asset[@"name"] ?: @"";
+            if ([name hasSuffix:@".tipa"]) {
+              self.tipaURL = asset[@"browser_download_url"];
+              break;
+            }
           }
 
           NSString *remoteVer = json[@"tag_name"];
@@ -86,6 +87,12 @@
                                           message:self.releaseNotes
                                    preferredStyle:UIAlertControllerStyleAlert];
 
+  [alert addAction:[UIAlertAction actionWithTitle:TR(@"Update_Download_Tipa")
+                                            style:UIAlertActionStyleDefault
+                                          handler:^(UIAlertAction *action) {
+                                            [self downloadAndOfferTipaFromVC:vc];
+                                          }]];
+
   [alert
       addAction:[UIAlertAction
                     actionWithTitle:TR(@"Update_Go")
@@ -114,6 +121,45 @@
     return;
   }
   [vc presentViewController:alert animated:YES completion:nil];
+}
+
+- (void)downloadAndOfferTipaFromVC:(UIViewController *)vc {
+  if (!self.tipaURL) return;
+  UIAlertController *hud = [UIAlertController
+      alertControllerWithTitle:TR(@"Update_Downloading")
+                       message:nil
+                preferredStyle:UIAlertControllerStyleAlert];
+  [vc presentViewController:hud animated:YES completion:nil];
+
+  NSURLRequest *req = [NSURLRequest requestWithURL:[NSURL URLWithString:self.tipaURL]
+                                       cachePolicy:NSURLRequestReloadIgnoringLocalCacheData
+                                   timeoutInterval:60.0];
+  NSString *dest = [NSTemporaryDirectory() stringByAppendingPathComponent:@"VansonMod_Update.tipa"];
+  [[NSURLSession sharedSession] downloadTaskWithRequest:req
+                                      completionHandler:^(NSURL *location, NSURLResponse *res, NSError *error) {
+    dispatch_async(dispatch_get_main_queue(), ^{
+      [hud dismissViewControllerAnimated:YES completion:nil];
+      UIViewController *t = [self topViewController];
+      if (error || !location || !t) {
+        if (t) [self showAlert:TR(@"Alert_Error") msg:TR(@"Update_Download_Failed")];
+        return;
+      }
+      NSError *mvErr = nil;
+      [[NSFileManager defaultManager] removeItemAtPath:dest error:nil];
+      if (![[NSFileManager defaultManager] moveItemAtPath:location.path
+                                                   toPath:dest
+                                                    error:&mvErr]) {
+        [self showAlert:TR(@"Alert_Error") msg:TR(@"Update_Download_Failed")];
+        return;
+      }
+      // 交给系统「打开方式」→ TrollStore 接管安装
+      self.docInteraction = [UIDocumentInteractionController
+          interactionControllerWithURL:[NSURL fileURLWithPath:dest]];
+      self.docInteraction.delegate = self;
+      self.docInteraction.name = @"VansonMod";
+      [self.docInteraction presentOptionsMenuFromRect:t.view.bounds inView:t.view animated:YES];
+    });
+  }] resume];
 }
 
 - (void)showAlert:(NSString *)title msg:(NSString *)msg {
