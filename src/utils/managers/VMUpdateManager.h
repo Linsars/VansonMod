@@ -4,7 +4,6 @@
 #define kVMUpdateAvailableNotification @"VMUpdateAvailableNotification"
 
 @interface VMUpdateManager : NSObject {
-  BOOL _autoCheckDone;
 }
 
 + (instancetype)shared;
