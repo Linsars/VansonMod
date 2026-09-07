@@ -135,7 +135,7 @@
                                        cachePolicy:NSURLRequestReloadIgnoringLocalCacheData
                                    timeoutInterval:60.0];
   NSString *dest = [NSTemporaryDirectory() stringByAppendingPathComponent:@"VansonMod_Update.tipa"];
-  [[NSURLSession sharedSession] downloadTaskWithRequest:req
+  [[[NSURLSession sharedSession] downloadTaskWithRequest:req
                                       completionHandler:^(NSURL *location, NSURLResponse *res, NSError *error) {
     dispatch_async(dispatch_get_main_queue(), ^{
       [hud dismissViewControllerAnimated:YES completion:nil];
