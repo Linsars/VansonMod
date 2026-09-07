@@ -1,6 +1,7 @@
 #import "../../include/VMMemoryEngine.h"
 #import "../../include/VMDataSession.h"
 #import "../../include/VMLocalization.h"
+#import "../utils/VMLog.h"
 #import "../../include/VMLockManager.h"
 #import "../../include/VMRVAPatch.h"
 #import "../../include/VMStoragePathHelper.h"
@@ -347,6 +348,7 @@ static void autoSearchProgressBridge(VMCore::MemoryCore::SearchProgress sp,
 }
 
 - (BOOL)attachToPid:(pid_t)pid {
+  VMLOG_INFO(@"[engine] attach pid=%d begin", pid);
   
   if (_targetTask != MACH_PORT_NULL) {
     mach_port_deallocate(mach_task_self(), _targetTask);
@@ -360,6 +362,7 @@ static void autoSearchProgressBridge(VMCore::MemoryCore::SearchProgress sp,
     _targetTask = MACH_PORT_NULL;
     
     _core->attach(0);
+    VMLOG_ERROR(@"[engine] attach pid=%d FAIL task_for_pid kr=%d (entitlement or dead pid)", pid, kr);
     return NO;
   }
   
@@ -379,6 +382,8 @@ static void autoSearchProgressBridge(VMCore::MemoryCore::SearchProgress sp,
     memset(pathBuffer, 0, sizeof(pathBuffer));
     proc_pidpath(pid, pathBuffer, sizeof(pathBuffer));
     NSString *fullPath = [NSString stringWithUTF8String:pathBuffer];
+    VMLOG_INFO(@"[engine] attach pid=%d OK path=%s (session cleared)", pid,
+               fullPath.length > 0 ? fullPath.UTF8String : "?");
     if (fullPath.length > 0) {
       self.currentProcessName =
           [[fullPath lastPathComponent] stringByDeletingPathExtension];

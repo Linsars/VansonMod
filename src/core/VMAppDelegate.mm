@@ -5,8 +5,10 @@
 #import "include/VMLockManager.h"
 #import "include/VMMemoryEngine.h"
 #import "include/VMPointerManager.h"
+#import "src/utils/VMLog.h"
 #import "src/utils/helpers/VMUIHelper.h"
 #import "src/utils/managers/VMImportHandler.h"
+#import "src/utils/managers/VMInboxBridge.h"
 #import <AVFoundation/AVFoundation.h>
 #import <UIKit/UIKit.h>
 
@@ -24,6 +26,7 @@
     didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
   self.window = [[UIWindow alloc] initWithFrame:[UIScreen mainScreen].bounds];
 
+
   [[NSUserDefaults standardUserDefaults] registerDefaults:@{
     @"app_theme" : @1,
     @"resultLimit" : @100,
@@ -31,7 +34,9 @@
     @"floatTolerance" : @0.001,
     @"lockInterval" : @0.5,
     @"preventSleep" : @NO,
-    @"fuzzyRepeatCustomEnabled" : @NO
+    @"fuzzyRepeatCustomEnabled" : @NO,
+    @"vmBridgeEnabled" : @YES,
+    @"vmDebugLog" : @NO
   }];
 
   [self checkAppReinstallOrUpdate];
@@ -58,6 +63,11 @@
 
   self.window.rootViewController = [[VMRootViewController alloc] init];
   [self.window makeKeyAndVisible];
+
+  // P0: build marker 先落 (防假包), 再拉起收件箱桥
+  [VMLog writeBuildMarkerIfNeeded];
+  [[VMInboxBridge shared] start];
+
 
   if (@available(iOS 15.0, *)) {
     UINavigationBarAppearance *appearance =

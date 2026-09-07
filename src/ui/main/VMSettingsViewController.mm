@@ -6,6 +6,8 @@
 #import "include/VMLocalization.h"
 #import <stdlib.h>
 #import "include/VMMemoryEngine.h"
+#import "../../src/utils/VMLog.h"
+#import "../../src/utils/managers/VMInboxBridge.h"
 #import <UIKit/UIKit.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
@@ -531,7 +533,7 @@
 #pragma mark - TableView DataSource
 
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
-  return 3; 
+  return 4; 
 }
 
 - (NSInteger)tableView:(UITableView *)tableView
@@ -539,6 +541,8 @@
   if (section == 0)
     return 6; 
   if (section == 1)
+    return 5;
+  if (section == 3)
     return 5;
   return 7;   
 }
@@ -549,6 +553,8 @@
     return nil;
   if (section == 1)
     return TR(@"Set_Sec_Func");
+  if (section == 3)
+    return TR(@"Diag_Sec_Title");
   return TR(@"Set_Sec_About");
 }
 
@@ -564,6 +570,10 @@
   cell.accessoryType = UITableViewCellAccessoryNone;
   cell.imageView.image = nil;
   cell.detailTextLabel.text = nil;
+
+  if (indexPath.section == 3) {
+    return [self diagCellForTableView:tableView atIndexPath:indexPath];
+  }
 
   if (indexPath.section == 0) {
     if (indexPath.row == 0) {
@@ -726,6 +736,78 @@
   return cell;
 }
 
+- (UISwitch *)diagSwitchWithTag:(NSInteger)tag key:(NSString *)key {
+  UISwitch *sw = [[UISwitch alloc] init];
+  sw.on = [[NSUserDefaults standardUserDefaults] boolForKey:key];
+  sw.tag = tag;
+  [sw addTarget:self
+                 action:@selector(diagSwitchChanged:)
+       forControlEvents:UIControlEventValueChanged];
+  return sw;
+}
+
+- (void)diagSwitchChanged:(UISwitch *)sw {
+  NSString *key = (sw.tag == 0) ? @"vmBridgeEnabled" : @"vmDebugLog";
+  [[NSUserDefaults standardUserDefaults] setBool:sw.on forKey:key];
+  if (sw.tag == 0) {
+    sw.on ? [[VMInboxBridge shared] start]
+          : [[VMInboxBridge shared] stop];
+    VMLOG_INFO(@"[bridge] toggle %@", sw.on ? @"ON" : @"OFF");
+  } else {
+    VMLOG_INFO(@"[diag] vmDebugLog -> %@", sw.on ? @"ON" : @"OFF");
+  }
+}
+
+- (UITableViewCell *)diagCellForTableView:(UITableView *)tableView
+                             atIndexPath:(NSIndexPath *)indexPath {
+  UITableViewCell *cell =
+      [tableView dequeueReusableCellWithIdentifier:@"c"];
+  if (!cell)
+    cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleValue1
+                                  reuseIdentifier:@"c"];
+  cell.textLabel.textColor = [UIColor labelColor];
+  cell.detailTextLabel.textColor = [UIColor secondaryLabelColor];
+
+  switch (indexPath.row) {
+  case 0: {
+    cell.textLabel.text = TR(@"Diag_Bridge");
+    cell.accessoryView = [self diagSwitchWithTag:0 key:@"vmBridgeEnabled"];
+    VMInboxBridge *b = [VMInboxBridge shared];
+    BOOL on = [[NSUserDefaults standardUserDefaults] boolForKey:@"vmBridgeEnabled"];
+    cell.detailTextLabel.text =
+        on ? [NSString stringWithFormat:TR(@"Diag_Bridge_On"), (int)b.jobsDone,
+                                      b.lastJobName, b.lastJobState]
+           : TR(@"Diag_Bridge_Off");
+    break;
+  }
+  case 1: {
+    cell.textLabel.text = TR(@"Diag_Debug_Log");
+    cell.accessoryView = [self diagSwitchWithTag:1 key:@"vmDebugLog"];
+    BOOL on = [[NSUserDefaults standardUserDefaults] boolForKey:@"vmDebugLog"];
+    cell.detailTextLabel.text = on ? @"ON" : @"OFF";
+    break;
+  }
+  case 2: {
+    cell.textLabel.text = TR(@"Diag_Path");
+    cell.detailTextLabel.text = @"Documents/vm_inbox";
+    cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
+    cell.selectionStyle = UITableViewCellSelectionStyleDefault;
+    break;
+  }
+  case 3:
+    cell.textLabel.text = TR(@"Diag_Clean");
+    cell.textLabel.textColor = [UIColor systemRedColor];
+    cell.selectionStyle = UITableViewCellSelectionStyleDefault;
+    break;
+  case 4:
+    cell.textLabel.text = TR(@"Diag_Export");
+    cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
+    cell.selectionStyle = UITableViewCellSelectionStyleDefault;
+    break;
+  }
+  return cell;
+}
+
 - (void)tableView:(UITableView *)tableView
     didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
   [tableView deselectRowAtIndexPath:indexPath animated:YES];
@@ -789,6 +871,57 @@
         [rootVC showDisclaimer:YES];
       }
     }
+  } else if (indexPath.section == 3) {
+    [self handleDiagTap:indexPath.row];
+  }
+}
+
+#pragma mark - Diagnostics Section (P0)
+
+- (void)handleDiagTap:(NSInteger)row {
+  if (row == 3) {
+    // 清理诊断数据: 桥产物 + 日志一次清空
+    NSUInteger arts = [VMInboxBridge purgeArtifacts];
+    uint64_t bytes = [VMLog purgeAll];
+    UIAlertController *alert = [UIAlertController
+        alertControllerWithTitle:TR(@"Diag_Clean_Done")
+        message:[NSString stringWithFormat:TR(@"Diag_Clean_Msg"), (int)arts,
+                                              (unsigned long long)bytes]
+        preferredStyle:UIAlertControllerStyleAlert];
+    [alert addAction:[UIAlertAction actionWithTitle:TR(@"Btn_OK")
+                                              style:UIAlertActionStyleCancel
+                                            handler:nil]];
+    [self presentViewController:alert animated:YES completion:nil];
+  } else if (row == 4) {
+    // 导出日志 (AirDrop/文件): 拿系统分享面板
+    NSString *path = [VMLog logFilePath];
+    if (![[NSFileManager defaultManager] fileExistsAtPath:path]) {
+      [[NSFileManager defaultManager] createFileAtPath:path
+                                              contents:[NSData data]
+                                            attributes:nil];
+    }
+    UIViewController *vc =
+        [UIApplication sharedApplication].keyWindow.rootViewController;
+    while (vc.presentedViewController)
+      vc = vc.presentedViewController;
+    UIActivityViewController *share =
+        [[UIActivityViewController alloc]
+            initWithActivityItems:@[ [NSURL fileURLWithPath:path] ]
+                            applicationActivities:nil];
+    [vc presentViewController:share animated:YES completion:nil];
+  } else if (row == 2) {
+    // 复制收件箱绝对路径 (SSH scp 用)
+    NSString *dir = [VMInboxBridge inboxPath];
+    [[UIPasteboard generalPasteboard] setString:dir];
+    UIAlertController *alert =
+        [UIAlertController alertControllerWithTitle:TR(@"Diag_Path")
+                                            message:dir
+                                     preferredStyle:
+                                         UIAlertControllerStyleAlert];
+    [alert addAction:[UIAlertAction actionWithTitle:TR(@"Btn_OK")
+                                              style:UIAlertActionStyleCancel
+                                            handler:nil]];
+    [self presentViewController:alert animated:YES completion:nil];
   }
 }
 

@@ -12,6 +12,8 @@ PACKAGE_VERSION = $(shell grep -i "Version:" control | awk '{print $$2}')
 VansonMod_FILES = \
 	main.mm \
 	src/core/VMAppDelegate.mm \
+	src/utils/VMLog.mm \
+	src/utils/managers/VMInboxBridge.mm \
 	src/core/VMRootViewController.mm \
 	src/core/UpdateCore.cpp \
 	src/core/ScriptCore.cpp \
@@ -81,6 +83,8 @@ VansonMod_FILES = \
 # 依赖框架
 VansonMod_FRAMEWORKS = UIKit CoreGraphics AVFoundation MobileCoreServices UniformTypeIdentifiers LinkPresentation JavaScriptCore
 VansonMod_CFLAGS = -fobjc-arc -I.
+VM_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
+VansonMod_CFLAGS += -DVM_BUILD_COMMIT=\"$(VM_COMMIT)\"
 VansonMod_CCFLAGS = -fvisibility=hidden -fvisibility-inlines-hidden -std=c++17 -I.
 
 # 签名权限

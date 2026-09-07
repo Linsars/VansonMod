@@ -1,6 +1,7 @@
 #import "VMScriptManager.h"
 #import "../../core/ScriptCore.hpp"
 #import "../../utils/helpers/VMUIHelper.h"
+#import "../VMLog.h"
 #import "include/VMLocalization.h"
 #import "include/VMMemoryEngine.h"
 #import <UIKit/UIKit.h>
@@ -68,6 +69,8 @@ kern_return_t mach_vm_write(vm_map_t, mach_vm_address_t, vm_offset_t,
 - (void)runScript:(NSString *)script
        completion:(void (^)(NSString *))completion {
   self.consoleLog = [NSMutableString string];
+  VMLOG_INFO(@"[script] start len=%lu targetPid=%d", (unsigned long)script.length,
+             [VMMemoryEngine shared].targetPid);
 
   dispatch_async(
       dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
@@ -123,6 +126,7 @@ kern_return_t mach_vm_write(vm_map_t, mach_vm_address_t, vm_offset_t,
         [self _internalLog:@"--- Script End ---"];
 
         dispatch_async(dispatch_get_main_queue(), ^{
+          VMLOG_INFO(@"[script] end out=%lu", (unsigned long)self.consoleLog.length);
           if (completion)
             completion(self.consoleLog);
         });
@@ -135,6 +139,7 @@ kern_return_t mach_vm_write(vm_map_t, mach_vm_address_t, vm_offset_t,
 
 - (void)_rawLog:(NSString *)msg {
   if (self.consoleLog) {
+    VMLOG_DEBUG(@"[console] %@", msg);
     NSDateFormatter *fmt = [[NSDateFormatter alloc] init];
     fmt.dateFormat = @"yyyy-MM-dd HH:mm:ss";
     NSString *timestamp = [fmt stringFromDate:[NSDate date]];
