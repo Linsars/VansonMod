@@ -14,20 +14,9 @@ void LocalizationCore::initLanguages() {
 }
 
 std::string LocalizationCore::getEffectiveLanguage() const {
+  // 仅保留中文与英文，其余语言表已裁撤
   if (_userLang == "en") return "en";
-  if (_userLang == "zh-Hans" || _userLang == "zh" || _userLang == "cn") return "cn";
-  if (_userLang == "zh-Hant" || _userLang == "tw") return "tw";
-  if (_userLang == "ja") return "ja";
-  if (_userLang == "ko") return "ko";
-  if (_userLang == "vi") return "vi";
-  if (_userLang == "th") return "th";
-  if (_userLang == "ru") return "ru";
-  if (_userLang == "es") return "es";
-  if (_userLang == "pt") return "pt";
-  if (_userLang == "fr") return "fr";
-  if (_userLang == "de") return "de";
-  if (_userLang == "ar") return "ar";
-  return "en";
+  return "cn";
 }
 
 std::string LocalizationCore::get(const std::string &key) {
@@ -41,8 +30,8 @@ std::string LocalizationCore::get(const std::string &key) {
     }
   }
   
-  if (lang != "en") {
-    langIt = _allStrings.find("en");
+  if (lang != "cn") {
+    langIt = _allStrings.find("cn");
     if (langIt != _allStrings.end()) {
       auto keyIt = langIt->second.find(key);
       if (keyIt != langIt->second.end() && !keyIt->second.empty()) {

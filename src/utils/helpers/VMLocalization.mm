@@ -30,38 +30,13 @@
     NSArray *preferredLangs = [NSLocale preferredLanguages];
     if (preferredLangs.count > 0) {
       NSString *sysLang = preferredLangs.firstObject;
-      
-      if ([sysLang hasPrefix:@"zh-Hans"] || [sysLang hasPrefix:@"zh-CN"]) {
-        lang = @"zh-Hans";
-      } else if ([sysLang hasPrefix:@"zh-Hant"] || [sysLang hasPrefix:@"zh-TW"] || [sysLang hasPrefix:@"zh-HK"]) {
-        lang = @"zh-Hant";
-      } else if ([sysLang hasPrefix:@"zh"]) {
-        lang = @"zh-Hans"; 
-      } else if ([sysLang hasPrefix:@"ja"]) {
-        lang = @"ja";
-      } else if ([sysLang hasPrefix:@"ko"]) {
-        lang = @"ko";
-      } else if ([sysLang hasPrefix:@"vi"]) {
-        lang = @"vi";
-      } else if ([sysLang hasPrefix:@"th"]) {
-        lang = @"th";
-      } else if ([sysLang hasPrefix:@"ru"]) {
-        lang = @"ru";
-      } else if ([sysLang hasPrefix:@"es"]) {
-        lang = @"es";
-      } else if ([sysLang hasPrefix:@"pt"]) {
-        lang = @"pt";
-      } else if ([sysLang hasPrefix:@"fr"]) {
-        lang = @"fr";
-      } else if ([sysLang hasPrefix:@"de"]) {
-        lang = @"de";
-      } else if ([sysLang hasPrefix:@"ar"]) {
-        lang = @"ar";
-      } else {
+      if ([sysLang hasPrefix:@"en"]) {
         lang = @"en";
+      } else {
+        lang = @"zh-Hans";
       }
     } else {
-      lang = @"en"; 
+      lang = @"zh-Hans";
     }
   }
 

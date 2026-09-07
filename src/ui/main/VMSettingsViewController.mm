@@ -415,18 +415,7 @@
 - (NSString *)displayNameForLanguageCode:(NSString *)code {
   if ([code isEqualToString:@"en"]) return @"English";
   if ([code isEqualToString:@"zh-Hans"]) return @"简体中文";
-  if ([code isEqualToString:@"zh-Hant"]) return @"繁體中文";
-  if ([code isEqualToString:@"ja"]) return @"日本語";
-  if ([code isEqualToString:@"ko"]) return @"한국어";
-  if ([code isEqualToString:@"vi"]) return @"Tiếng Việt";
-  if ([code isEqualToString:@"th"]) return @"ไทย";
-  if ([code isEqualToString:@"ru"]) return @"Русский";
-  if ([code isEqualToString:@"es"]) return @"Español";
-  if ([code isEqualToString:@"pt"]) return @"Português";
-  if ([code isEqualToString:@"fr"]) return @"Français";
-  if ([code isEqualToString:@"de"]) return @"Deutsch";
-  if ([code isEqualToString:@"ar"]) return @"العربية";
-  return TR(@"Lang_Auto");  
+  return TR(@"Lang_Auto");
 }
 
 - (void)showLanguagePicker {
@@ -437,19 +426,8 @@
   
   NSArray *languages = @[
     @[@"Auto", TR(@"Lang_Auto")],
-    @[@"en", @"English"],
     @[@"zh-Hans", @"简体中文"],
-    @[@"zh-Hant", @"繁體中文"],
-    @[@"ja", @"日本語"],
-    @[@"ko", @"한국어"],
-    @[@"vi", @"Tiếng Việt"],
-    @[@"th", @"ไทย"],
-    @[@"ru", @"Русский"],
-    @[@"es", @"Español"],
-    @[@"pt", @"Português"],
-    @[@"fr", @"Français"],
-    @[@"de", @"Deutsch"],
-    @[@"ar", @"العربية"],
+    @[@"en", @"English"],
   ];
   
   for (NSArray *lang in languages) {

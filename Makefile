@@ -70,17 +70,6 @@ VansonMod_FILES = \
 	src/utils/helpers/LocalizationCore.cpp \
 	src/utils/helpers/lang/Lang_EN.cpp \
 	src/utils/helpers/lang/Lang_CN.cpp \
-	src/utils/helpers/lang/Lang_TW.cpp \
-	src/utils/helpers/lang/Lang_JA.cpp \
-	src/utils/helpers/lang/Lang_KO.cpp \
-	src/utils/helpers/lang/Lang_RU.cpp \
-	src/utils/helpers/lang/Lang_ES.cpp \
-	src/utils/helpers/lang/Lang_VI.cpp \
-	src/utils/helpers/lang/Lang_PT.cpp \
-	src/utils/helpers/lang/Lang_FR.cpp \
-	src/utils/helpers/lang/Lang_DE.cpp \
-	src/utils/helpers/lang/Lang_TH.cpp \
-	src/utils/helpers/lang/Lang_AR.cpp \
 	src/utils/managers/VMImportHandler.mm \
 	src/core/SystemCore.cpp \
 	src/core/VMDebugCore.cpp \
