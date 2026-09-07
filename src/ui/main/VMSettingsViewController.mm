@@ -20,6 +20,12 @@
 @property(nonatomic, copy) NSString *currentIconName;
 @end
 
+
+@interface LSApplicationWorkspace : NSObject
++ (instancetype)defaultWorkspace;
+- (BOOL)openApplicationWithBundleID:(NSString *)bundleID;
+@end
+
 @implementation VMIconDataSource
 
 - (instancetype)init {
@@ -463,13 +469,7 @@
 }
 
 - (void)applyLanguage:(NSString *)code {
-  self.selectedLanguageCode = code;
-  [[VMLocalization shared] setLanguage:code];
-
-  [self.tableView reloadRowsAtIndexPaths:@[[NSIndexPath indexPathForRow:2 inSection:1]]
-                        withRowAnimation:UITableViewRowAnimationNone];
-
-  // 偏好已写入；原地重建根视图在重页面上极易卡死，改重启生效（工具类 app 通用做法）
+  // 选择时零操作（不写偏好/不刷新/不重建），只提示；真正切换在确认后 0.1s
   UIAlertController *alert = [UIAlertController
       alertControllerWithTitle:TR(@"Set_Lang")
                        message:TR(@"Lang_Need_Restart")
@@ -477,12 +477,31 @@
   [alert addAction:[UIAlertAction actionWithTitle:TR(@"Lang_Restart_Now")
                                             style:UIAlertActionStyleDefault
                                           handler:^(UIAlertAction *a) {
-                                            exit(0);
+                                            dispatch_after(dispatch_time(
+                                                DISPATCH_TIME_NOW,
+                                                (int64_t)(0.1 * NSEC_PER_SEC)),
+                                                dispatch_get_main_queue(), ^{
+                                              // 真正切换：写入偏好
+                                              [[VMLocalization shared] setLanguage:code];
+                                              // 自杀 + 让 SpringBoard 重新拉起
+                                              NSString *bid =
+                                                  [[NSBundle mainBundle] bundleIdentifier];
+                                              [[LSApplicationWorkspace defaultWorkspace]
+                                                  openApplicationWithBundleID:bid];
+                                              exit(0);
+                                            });
                                           }]];
   [alert addAction:[UIAlertAction actionWithTitle:TR(@"Btn_Cancel")
                                             style:UIAlertActionStyleCancel
                                           handler:nil]];
-  [self presentViewController:alert animated:YES completion:nil];
+  // 等 ActionSheet 收起动画走完再弹，防 presentation 队列对撞
+  dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.35 * NSEC_PER_SEC)),
+                 dispatch_get_main_queue(), ^{
+    UIViewController *top = self;
+    while (top.presentedViewController && top.presentedViewController != self)
+      top = top.presentedViewController;
+    [top presentViewController:alert animated:YES completion:nil];
+  });
 }
 
 - (void)setupFooter {
