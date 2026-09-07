@@ -175,6 +175,8 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>vansonmod</string>
+				<string>vm</string>
+				<string>vanson</string>
 			</array>
 		</dict>
 	</array>
@@ -185,6 +187,21 @@
 		<string>mqq</string>
 		<string>mqqapi</string>
 		<string>mqqwpa</string>
+		<string>filza</string>
+		<string>santander</string>
+		<string>zebra</string>
+		<string>sileo</string>
+		<string>snowboard</string>
+		<string>itms-apps</string>
+		<string>itms-services</string>
+		<string>apple-app-store</string>
+		<string>shortcuts</string>
+		<string>jsbox</string>
+		<string>a-look</string>
+		<string>scriptable</string>
+		<string>tg</string>
+		<string>snssdk1128</string>
+		<string>weixin</string>
 	</array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>

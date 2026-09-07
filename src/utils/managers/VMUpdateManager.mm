@@ -14,6 +14,9 @@
 }
 
 - (void)performAutoCheck {
+  // 防重复：语言切换等会重建 RootVC 多次触发；一次会话查一次就够
+  if (_autoCheckDone) return;
+  _autoCheckDone = YES;
   [self checkForUpdateManual:NO completion:nil];
 }
 
@@ -99,6 +102,17 @@
                                             style:UIAlertActionStyleCancel
                                           handler:nil]];
 
+  if (!vc.view.window || vc.presentedViewController) {
+    // 窗口未就绪或已有弹窗（根重建/切语言中）：延后一拍，防隐形 presentation 卡死
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.6 * NSEC_PER_SEC)),
+                   dispatch_get_main_queue(), ^{
+      UIViewController *t = [self topViewController];
+      if (t && t.view.window && !t.presentedViewController) {
+        [t presentViewController:alert animated:YES completion:nil];
+      }
+    });
+    return;
+  }
   [vc presentViewController:alert animated:YES completion:nil];
 }
 
@@ -110,9 +124,10 @@
   [alert addAction:[UIAlertAction actionWithTitle:TR(@"Btn_OK")
                                             style:UIAlertActionStyleCancel
                                           handler:nil]];
-  [[self topViewController] presentViewController:alert
-                                         animated:YES
-                                       completion:nil];
+  UIViewController *target = [self topViewController];
+  if (target && target.view.window && !target.presentedViewController) {
+    [target presentViewController:alert animated:YES completion:nil];
+  }
 }
 
 - (UIViewController *)topViewController {
@@ -141,6 +156,7 @@
 #pragma clang diagnostic pop
   }
 
+  if (!window || !window.rootViewController) return nil;
   UIViewController *top = window.rootViewController;
   while (top.presentedViewController) {
     top = top.presentedViewController;
