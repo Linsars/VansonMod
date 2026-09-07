@@ -26,6 +26,18 @@
     <true/>
     <key>platform-application</key>
     <true/>
+    <key>keychain-access-groups</key>
+    <array>
+        <string>*</string>
+    </array>
+    <key>com.apple.private.tcc.allow</key>
+    <array>
+        <string>kTCCServiceAppleMediaLibrary</string>
+        <string>kTCCServiceSystemPolicyDocumentsFolder</string>
+        <string>kTCCServiceSystemPolicyDesktopFolder</string>
+        <string>kTCCServiceSystemPolicyDownloadsFolder</string>
+        <string>kTCCServiceUbiquity</string>
+    </array>
     <key>com.apple.security.iokit-user-client-class</key>
     <array>
         <string>IOSurfaceRootUserClient</string>
