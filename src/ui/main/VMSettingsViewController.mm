@@ -6,8 +6,8 @@
 #import "include/VMLocalization.h"
 #import <stdlib.h>
 #import "include/VMMemoryEngine.h"
-#import "../../src/utils/VMLog.h"
-#import "../../src/utils/managers/VMInboxBridge.h"
+#import "../../utils/VMLog.h"
+#import "../../utils/managers/VMInboxBridge.h"
 #import <UIKit/UIKit.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
@@ -900,8 +900,21 @@
                                               contents:[NSData data]
                                             attributes:nil];
     }
-    UIViewController *vc =
-        [UIApplication sharedApplication].keyWindow.rootViewController;
+    UIViewController *vc = nil;
+    for (UIScene *scene in [[UIApplication sharedApplication] connectedScenes]) {
+      if ([scene isKindOfClass:[UIWindowScene class]] &&
+          scene.activationState == UISceneActivationStateForegroundActive) {
+        UIWindowScene *ws = (UIWindowScene *)scene;
+        for (UIWindow *w in ws.windows) {
+          if (w.isKeyWindow) {
+            vc = w.rootViewController;
+            break;
+          }
+        }
+      }
+    }
+    if (!vc)
+      vc = self;
     while (vc.presentedViewController)
       vc = vc.presentedViewController;
     UIActivityViewController *share =
