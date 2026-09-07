@@ -845,6 +845,9 @@ std::map<std::string, std::string> Lang_CN::getStrings() {
     {"Update_Downloading", "下载中…"},
     {"Update_Download_Failed", "下载失败，请检查网络。"},
 
+    {"Lang_Need_Restart", "语言已切换，重启应用后生效。"},
+    {"Lang_Restart_Now", "立即重启"},
+
   };
 }
 

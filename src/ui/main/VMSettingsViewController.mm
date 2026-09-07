@@ -4,6 +4,7 @@
 #import "../../utils/managers/VMUpdateManager.h"
 #import "include/VMIconHelper.h"
 #import "include/VMLocalization.h"
+#import <stdlib.h>
 #import "include/VMMemoryEngine.h"
 #import <UIKit/UIKit.h>
 #import <objc/message.h>
@@ -464,51 +465,24 @@
 - (void)applyLanguage:(NSString *)code {
   self.selectedLanguageCode = code;
   [[VMLocalization shared] setLanguage:code];
-  
-  [self.tableView reloadRowsAtIndexPaths:@[[NSIndexPath indexPathForRow:2 inSection:1]] 
+
+  [self.tableView reloadRowsAtIndexPaths:@[[NSIndexPath indexPathForRow:2 inSection:1]]
                         withRowAnimation:UITableViewRowAnimationNone];
 
-  UIWindow *window = nil;
-  if (@available(iOS 13.0, *)) {
-    for (UIWindowScene *scene in [UIApplication sharedApplication]
-             .connectedScenes) {
-      if (scene.activationState == UISceneActivationStateForegroundActive) {
-        for (UIWindow *w in scene.windows) {
-          if (w.isKeyWindow) {
-            window = w;
-            break;
-          }
-        }
-      }
-      if (window)
-        break;
-    }
-  }
-  if (!window) {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-    window = [[UIApplication sharedApplication] keyWindow];
-#pragma clang diagnostic pop
-  }
-
-  VMRootViewController *newRoot = [[VMRootViewController alloc] init];
-  if (@available(iOS 13.0, *)) {
-    newRoot.overrideUserInterfaceStyle = window.overrideUserInterfaceStyle;
-  }
-
-  if (window) {
-    [UIView transitionWithView:window
-                      duration:0.3
-                       options:UIViewAnimationOptionTransitionCrossDissolve
-                    animations:^{
-                      window.rootViewController = newRoot;
-                    }
-                    completion:nil];
-  }
-
-  UINotificationFeedbackGenerator *gen =
-      [[UINotificationFeedbackGenerator alloc] init];
-  [gen notificationOccurred:UINotificationFeedbackTypeSuccess];
+  // 偏好已写入；原地重建根视图在重页面上极易卡死，改重启生效（工具类 app 通用做法）
+  UIAlertController *alert = [UIAlertController
+      alertControllerWithTitle:TR(@"Set_Lang")
+                       message:TR(@"Lang_Need_Restart")
+                preferredStyle:UIAlertControllerStyleAlert];
+  [alert addAction:[UIAlertAction actionWithTitle:TR(@"Lang_Restart_Now")
+                                            style:UIAlertActionStyleDefault
+                                          handler:^(UIAlertAction *a) {
+                                            exit(0);
+                                          }]];
+  [alert addAction:[UIAlertAction actionWithTitle:TR(@"Btn_Cancel")
+                                            style:UIAlertActionStyleCancel
+                                          handler:nil]];
+  [self presentViewController:alert animated:YES completion:nil];
 }
 
 - (void)setupFooter {

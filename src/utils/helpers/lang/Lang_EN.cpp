@@ -845,6 +845,9 @@ std::map<std::string, std::string> Lang_EN::getStrings() {
     {"Update_Downloading", "Downloading…"},
     {"Update_Download_Failed", "Download failed. Check your network."},
 
+    {"Lang_Need_Restart", "Language changed. Restart the app to apply."},
+    {"Lang_Restart_Now", "Restart Now"},
+
   };
 }
 
