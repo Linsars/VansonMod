@@ -2,15 +2,16 @@
 // 沙盒 Documents/vm_debug.log; >256KB 截半轮转; vmDebugLog 开关控全量/精简
 #import <Foundation/Foundation.h>
 
-#define VMLOG_INFO(fmt, ...)  [VMLog log:@"INFO" fmt:(fmt), ##__VA_ARGS__]
-#define VMLOG_WARN(fmt, ...)  [VMLog log:@"WARN" fmt:(fmt), ##__VA_ARGS__]
-#define VMLOG_ERROR(fmt, ...) [VMLog log:@"ERROR" fmt:(fmt), ##__VA_ARGS__]
+#define VMLOG_INFO(fmt, ...)  [VMLog log:@"INFO" format:(fmt), ##__VA_ARGS__]
+#define VMLOG_WARN(fmt, ...)  [VMLog log:@"WARN" format:(fmt), ##__VA_ARGS__]
+#define VMLOG_ERROR(fmt, ...) [VMLog log:@"ERROR" format:(fmt), ##__VA_ARGS__]
 // debug 级: 仅 vmDebugLog=ON 时落盘 (全量操作边界)
 #define VMLOG_DEBUG(fmt, ...) [VMLog debug:(fmt), ##__VA_ARGS__]
 
 @interface VMLog : NSObject
 
-+ (void)log:(NSString *)level fmt:(NSString *)fmt, ...NS_FORMAT_FUNCTION(2, 3);
+// 注意: selector 关键字用 format:, 避开宏参数名 fmt (预处理器会连关键字一起替换)
++ (void)log:(NSString *)level format:(NSString *)format, ...NS_FORMAT_FUNCTION(2, 3);
 + (void)debug:(NSString *)fmt, ...NS_FORMAT_FUNCTION(1, 2);
 
 // 落盘路径 (沙盒 Documents/vm_debug.log)

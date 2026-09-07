@@ -71,7 +71,7 @@ static dispatch_queue_t VMLogQueue(void) {
   fclose(fp);
 }
 
-+ (void)log:(NSString *)level fmt:(NSString *)fmt, ... {
++ (void)log:(NSString *)level format:(NSString *)fmt, ... {
   va_list args;
   va_start(args, fmt);
   NSString *msg = [[NSString alloc] initWithFormat:fmt arguments:args];
