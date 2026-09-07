@@ -19,12 +19,12 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/theos
-          key: theos-macos15
+          key: theos-macos15-r2
 
       - name: Setup Theos
         run: |
-          if [ ! -d "$HOME/theos" ]; then
-            git clone --depth 1 https://github.com/theos/theos.git "$HOME/theos"
+          if [ ! -d "$HOME/theos/vendor/dm.pl" ]; then
+            git clone --depth 1 --recursive https://github.com/theos/theos.git "$HOME/theos"
           fi
           brew install ldid
           echo "THEOS=$HOME/theos" >> "$GITHUB_ENV"
