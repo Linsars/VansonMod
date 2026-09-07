@@ -155,7 +155,6 @@
       // 交给系统「打开方式」→ TrollStore 接管安装
       self.docInteraction = [UIDocumentInteractionController
           interactionControllerWithURL:[NSURL fileURLWithPath:dest]];
-      self.docInteraction.delegate = self;
       self.docInteraction.name = @"VansonMod";
       [self.docInteraction presentOptionsMenuFromRect:t.view.bounds inView:t.view animated:YES];
     });
