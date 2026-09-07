@@ -245,11 +245,11 @@ static const void *VMInboxQueueKey = &VMInboxQueueKey;
   NSString *target = [NSString stringWithFormat:@"pid=%d", engine.targetPid];
 
   // 脚本体去掉头注释行再跑? 不去 — JS 注释无害, 原样执行保持行为一致
-  __weak typeof(self) wself = self;
+  __weak VMInboxBridge *wself = self;
   NSString *job = base;
   [VMScriptManager.shared runScript:body
                          completion:^(NSString *log) {
-                           typeof(wself) sself = wself;
+                           VMInboxBridge *sself = wself;
                            [sself finishJob:job
                                         log:(log ?: @"(empty output)")
                                         ok:YES];
@@ -286,12 +286,12 @@ static const void *VMInboxQueueKey = &VMInboxQueueKey;
 
 // 看门狗: JS 死循环救不了, 但至少把 .running 落成 .done 别卡死队列
 - (void)armWatchdog {
-  __weak typeof(self) wself = self;
+  __weak VMInboxBridge *wself = self;
   NSString *job = _busyJob;
   dispatch_after(
       dispatch_time(DISPATCH_TIME_NOW, (int64_t)(kStaleRunning * NSEC_PER_SEC)),
       _q, ^{
-        typeof(wself) sself = wself;
+        VMInboxBridge *sself = wself;
         if (!sself || !sself->_busy || ![sself->_busyJob isEqualToString:job])
           return;
         VMLOG_ERROR(@"[bridge] job TIMEOUT %@", job);
