@@ -7,6 +7,12 @@
 #import <sys/stat.h>
 #import <signal.h>
 #import <unistd.h>
+#import <string.h>
+#import <time.h>
+
+// libproc 不在 SDK 头 — 手动声明
+extern "C" int proc_pidpath(int pid, void *buffer, uint32_t buffersize);
+#define PROC_PIDPATHINFO_MAXSIZE 4096
 
 // persona API 不在公开 SDK 头文件 — 符号在 libsystem_kernel, 值抄 XNU spawn_internal.h
 extern "C" {
@@ -41,9 +47,9 @@ extern char **environ;
   posix_spawnattr_set_persona_gid_np(&attr, 0);
 
   // argv: exe + args (all cstrings)
-  const char *argv[args.count + 2];
+  const char *argv[8];
   argv[0] = exe;
-  for (NSUInteger i = 0; i < args.count; i++)
+  for (NSUInteger i = 0; i < args.count && i < 6; i++)
     argv[i + 1] = args[i].fileSystemRepresentation;
   argv[args.count + 1] = NULL;
 
