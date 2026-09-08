@@ -6,6 +6,7 @@
 - (void)log:(NSString *)msg;
 - (void)toast:(NSString *)msg;
 - (void)sleep:(double)seconds;
+JSExportAs(killPid, -(NSString *)killPid : (NSString *)pidStr);
 
 JSExportAs(setFloatTolerance, -(void)setFloatTolerance : (double)tolerance);
 

@@ -1,5 +1,6 @@
 #import "../main/VMAppSelectViewController.h"
 #import "../../utils/helpers/VMUIHelper.h"
+#import "../../utils/VMLog.h"
 #import "../patch/VMBackupListViewController.h"
 #import "../memory/VMProcessAuditViewController.h"
 #import "../../utils/managers/VMBackupManager.h"
@@ -651,11 +652,16 @@ typedef NS_ENUM(NSInteger, VMAppFilterMode) {
     [alert addAction:[UIAlertAction actionWithTitle:TR(@"Act_Kill")
         style:UIAlertActionStyleDestructive handler:^(UIAlertAction *action) {
       // P0.4: root 进程 kill 会 EPERM — 拿 task port 走 task_terminate
-      if (kill(pid, SIGKILL) != 0) {
+      int rc = kill(pid, SIGKILL);
+      VMLOG_INFO(@"[kill-ui] pid=%d rc=%d errno=%d", pid, rc, rc ? errno : 0);
+      if (rc != 0) {
         mach_port_t task = MACH_PORT_NULL;
-        if (task_for_pid(mach_task_self(), pid, &task) == KERN_SUCCESS) {
-          task_terminate(task);
+        kern_return_t kr = task_for_pid(mach_task_self(), pid, &task);
+        VMLOG_INFO(@"[kill-ui] task_for_pid kr=%d", kr);
+        if (kr == KERN_SUCCESS) {
+          kern_return_t termKr = task_terminate(task);
           mach_port_deallocate(mach_task_self(), task);
+          VMLOG_INFO(@"[kill-ui] task_terminate kr=%d", termKr);
         }
       }
       dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)),

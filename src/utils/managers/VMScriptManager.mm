@@ -153,6 +153,36 @@ kern_return_t mach_vm_write(vm_map_t, mach_vm_address_t, vm_offset_t,
   [self _rawLog:msg];
 }
 
+// P0.4b: kill with escalation + 全链日志 — root 进程 kill EPERM 时走 task port
+- (NSString *)killPid:(NSString *)pidStr {
+  pid_t pid = [pidStr intValue];
+  if (pid <= 0)
+    return @"invalid pid";
+
+  int rc = kill(pid, SIGKILL);
+  [self _rawLog:[NSString stringWithFormat:@"[kill] pid=%d kill rc=%d errno=%d(%s)", pid, rc,
+                                          errno, strerror(errno)]];
+  if (rc == 0) {
+    [self _rawLog:@"[kill] killed via signal"];
+    return @"killed (signal)";
+  }
+
+  mach_port_t task = MACH_PORT_NULL;
+  kern_return_t kr = task_for_pid(mach_task_self(), pid, &task);
+  [self _rawLog:[NSString stringWithFormat:@"[kill] task_for_pid kr=%d", kr]];
+  if (kr != KERN_SUCCESS)
+    return [NSString stringWithFormat:@"task_for_pid FAILED kr=%d", kr];
+
+  kern_return_t termKr = task_terminate(task);
+  mach_port_deallocate(mach_task_self(), task);
+  [self _rawLog:[NSString stringWithFormat:@"[kill] task_terminate kr=%d", termKr]];
+  if (termKr == KERN_SUCCESS) {
+    [self _rawLog:@"[kill] terminated via task port"];
+    return @"killed (task_terminate)";
+  }
+  return [NSString stringWithFormat:@"task_terminate FAILED kr=%d", termKr];
+}
+
 - (void)toast:(NSString *)msg {
   dispatch_async(dispatch_get_main_queue(), ^{
     UIAlertController *alert = [UIAlertController
