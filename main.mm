@@ -1,6 +1,7 @@
 #import <UIKit/UIKit.h>
 #import "src/core/VMAppDelegate.h"
 #import "src/utils/VMLog.h"
+#import "src/utils/VMRootHelper.h"
 #import "src/utils/managers/VMInboxBridge.h"
 #include <signal.h>
 #include <errno.h>
