@@ -351,10 +351,6 @@
 
   NSDictionary *hb = [VMRootHelper readDaemonHeartbeat];
   NSString *myBuild = @VM_BUILD_COMMIT;
-  char exe[4096];
-  uint32_t sz = sizeof(exe);
-  _NSGetExecutablePath(exe, &sz);
-  NSString *myPath = [NSString stringWithUTF8String:exe];
 
   if (hb && [hb[@"build"] isEqualToString:myBuild]) {
     VMLOG_INFO(@"[daemon] healthy same-build daemon pid=%@, reuse", hb[@"pid"]);
