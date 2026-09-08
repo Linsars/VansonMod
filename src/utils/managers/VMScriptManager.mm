@@ -6,6 +6,9 @@
 #import "include/VMMemoryEngine.h"
 #import <UIKit/UIKit.h>
 #include <mach/mach.h>
+#include <signal.h>
+#include <errno.h>
+#include <string.h>
 #include <string>
 
 #ifdef __cplusplus
