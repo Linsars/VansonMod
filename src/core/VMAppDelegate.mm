@@ -9,7 +9,9 @@
 #import "src/utils/helpers/VMUIHelper.h"
 #import "src/utils/managers/VMImportHandler.h"
 #import "src/utils/managers/VMInboxBridge.h"
+#import "src/utils/VMRootHelper.h"
 #import <AVFoundation/AVFoundation.h>
+#import <mach-o/dyld.h>
 #import <UIKit/UIKit.h>
 
 #define TR(key) ([[VMLocalization shared] localizedString:key])
@@ -20,6 +22,7 @@
 - (void)checkAppReinstallOrUpdate;
 - (void)setupDefaultSettingsIfNeeded;
 - (void)startKeepAlive;
+- (void)reconcileRootDaemon;
 @end
 
 @implementation VMAppDelegate
@@ -37,7 +40,8 @@
     @"preventSleep" : @NO,
     @"fuzzyRepeatCustomEnabled" : @NO,
     @"vmBridgeEnabled" : @YES,
-    @"vmDebugLog" : @NO
+    @"vmDebugLog" : @NO,
+    @"vmDaemonEnabled" : @YES
   }];
 
   [self checkAppReinstallOrUpdate];
@@ -65,9 +69,9 @@
   self.window.rootViewController = [[VMRootViewController alloc] init];
   [self.window makeKeyAndVisible];
 
-  // P0: build marker 先落 (防假包), 再拉起收件箱桥
+  // P0: build marker 先落 (防假包), 再对账 root 守护 (P0.6)
   [VMLog writeBuildMarkerIfNeeded];
-  [[VMInboxBridge shared] start];
+  [self reconcileRootDaemon];
 
 
   if (@available(iOS 15.0, *)) {
@@ -326,6 +330,53 @@
                              });
                        }];
   });
+}
+
+#pragma mark - Root Daemon Reconciliation (P0.6)
+
+// GUI 启动对账: 保证恰好一个「本版本」root 守护在跑
+- (void)reconcileRootDaemon {
+  BOOL enabled = [[NSUserDefaults standardUserDefaults]
+      boolForKey:@"vmDaemonEnabled"];
+  if (!enabled) {
+    // 关闸: 杀掉可能在跑的旧守护
+    NSDictionary *hb = [VMRootHelper readDaemonHeartbeat];
+    if (hb) {
+      [VMRootHelper requestDaemonStop];
+      VMLOG_INFO(@"[daemon] disabled by pref, stop requested (pid=%@)",
+                 hb[@"pid"]);
+    }
+    return;
+  }
+
+  NSDictionary *hb = [VMRootHelper readDaemonHeartbeat];
+  NSString *myBuild = @VM_BUILD_COMMIT;
+  char exe[4096];
+  uint32_t sz = sizeof(exe);
+  _NSGetExecutablePath(exe, &sz);
+  NSString *myPath = [NSString stringWithUTF8String:exe];
+
+  if (hb && [hb[@"build"] isEqualToString:myBuild]) {
+    VMLOG_INFO(@"[daemon] healthy same-build daemon pid=%@, reuse", hb[@"pid"]);
+    return; // 恰好一个本版本守护已在 → 复用
+  }
+
+  if (hb) {
+    // 旧版本孤儿: root 杀旧 (daemon 是 root, mobile kill 不动)
+    VMLOG_WARN(@"[daemon] stale build=%@ path=%@, root-killing pid=%@",
+               hb[@"build"], hb[@"path"], hb[@"pid"]);
+    [VMRootHelper spawnRootKill:[hb[@"pid"] intValue]];
+    unlink(VM_DAEMON_HB_CSTR);
+  }
+
+  pid_t child = [VMRootHelper spawnSelfDaemon];
+  if (child > 0) {
+    VMLOG_INFO(@"[daemon] spawned root daemon pid=%d build=%@", child,
+               myBuild);
+  } else {
+    VMLOG_ERROR(@"[daemon] spawn FAILED — bridge will run in-GUI only");
+    [[VMInboxBridge shared] start]; // daemon 起不来: GUI 自己兜底跑桥
+  }
 }
 
 @end

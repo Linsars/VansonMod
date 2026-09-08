@@ -219,6 +219,8 @@ std::map<std::string, std::string> Lang_EN::getStrings() {
     {"Set_Theme", "Theme"},
     {"Set_Lang", "Language"},
     {"Diag_Sec_Title", "Diagnostics"},
+    {"Diag_Daemon", "Root Daemon"},
+    {"Diag_Daemon_Off", "not running"},
     {"Diag_Bridge", "Remote Debug Bridge"},
     {"Diag_Bridge_On", "%d jobs · last: %@ (%@)"},
     {"Diag_Bridge_Off", "Off"},

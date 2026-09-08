@@ -8,6 +8,7 @@
 #import "include/VMMemoryEngine.h"
 #import "../../utils/VMLog.h"
 #import "../../utils/managers/VMInboxBridge.h"
+#import "../../utils/VMRootHelper.h"
 #import <UIKit/UIKit.h>
 #import <ifaddrs.h>
 #import <arpa/inet.h>
@@ -575,7 +576,7 @@ static NSString *VMDeviceIPv4(void) {
   if (section == 1)
     return 5;
   if (section == 3)
-    return 6;
+    return 7; // P0.6: +1 Root 守护
   return 7;   
 }
 
@@ -779,12 +780,27 @@ static NSString *VMDeviceIPv4(void) {
 }
 
 - (void)diagSwitchChanged:(UISwitch *)sw {
-  NSString *key = (sw.tag == 0) ? @"vmBridgeEnabled" : @"vmDebugLog";
+  NSString *key = (sw.tag == 0)   ? @"vmBridgeEnabled"
+                  : (sw.tag == 1) ? @"vmDebugLog"
+                                  : @"vmDaemonEnabled";
   [[NSUserDefaults standardUserDefaults] setBool:sw.on forKey:key];
   if (sw.tag == 0) {
-    sw.on ? [[VMInboxBridge shared] start]
-          : [[VMInboxBridge shared] stop];
+    // P0.6: 守护活着时桥归 daemon 管 — GUI 只在无守护时兜底自跑
+    if (sw.on && [VMRootHelper readDaemonHeartbeat]) {
+      VMLOG_INFO(@"[bridge] toggle ON — daemon owns inbox, GUI skip");
+    } else {
+      sw.on ? [[VMInboxBridge shared] start]
+            : [[VMInboxBridge shared] stop];
+    }
     VMLOG_INFO(@"[bridge] toggle %@", sw.on ? @"ON" : @"OFF");
+  } else if (sw.tag == 2) {
+    if (sw.on) {
+      pid_t c = [VMRootHelper spawnSelfDaemon];
+      VMLOG_INFO(@"[daemon] toggle ON spawn pid=%d", c);
+    } else {
+      [VMRootHelper requestDaemonStop];
+      VMLOG_INFO(@"[daemon] toggle OFF stop requested");
+    }
   } else {
     VMLOG_INFO(@"[diag] vmDebugLog -> %@", sw.on ? @"ON" : @"OFF");
   }
@@ -820,6 +836,21 @@ static NSString *VMDeviceIPv4(void) {
     break;
   }
   case 2: {
+    // P0.6: Root 守护状态 + 开关
+    cell.textLabel.text = TR(@"Diag_Daemon");
+    cell.accessoryView = [self diagSwitchWithTag:2 key:@"vmDaemonEnabled"];
+    NSDictionary *hb = [VMRootHelper readDaemonHeartbeat];
+    if (hb)
+      cell.detailTextLabel.text =
+          [NSString stringWithFormat:@"pid=%@ %@",
+                                     hb[@"pid"], hb[@"build"]];
+    else
+      cell.detailTextLabel.text = TR(@"Diag_Daemon_Off");
+    cell.detailTextLabel.textColor =
+        hb ? [UIColor systemGreenColor] : [UIColor secondaryLabelColor];
+    break;
+  }
+  case 3: {
     // SSH 自报家门: ip:2222 点击复制连接串 (TRL 教训: 设备 IP 漂移坑死人)
     cell.textLabel.text = TR(@"Diag_SSH");
     NSString *ip = VMDeviceIPv4();
@@ -829,19 +860,19 @@ static NSString *VMDeviceIPv4(void) {
     cell.selectionStyle = UITableViewCellSelectionStyleDefault;
     break;
   }
-  case 3: {
+  case 4: {
     cell.textLabel.text = TR(@"Diag_Path");
     cell.detailTextLabel.text = @"Documents/vm_inbox";
     cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
     cell.selectionStyle = UITableViewCellSelectionStyleDefault;
     break;
   }
-  case 4:
+  case 5:
     cell.textLabel.text = TR(@"Diag_Clean");
     cell.textLabel.textColor = [UIColor systemRedColor];
     cell.selectionStyle = UITableViewCellSelectionStyleDefault;
     break;
-  case 5:
+  case 6:
     cell.textLabel.text = TR(@"Diag_Export");
     cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
     cell.selectionStyle = UITableViewCellSelectionStyleDefault;
@@ -922,6 +953,25 @@ static NSString *VMDeviceIPv4(void) {
 
 - (void)handleDiagTap:(NSInteger)row {
   if (row == 2) {
+    // P0.6: 点守护行 = 强制重启守护 (杀旧拉新, 升级/卡死自救)
+    NSDictionary *hb = [VMRootHelper readDaemonHeartbeat];
+    if (hb)
+      [VMRootHelper spawnRootKill:[hb[@"pid"] intValue]];
+    unlink(VM_DAEMON_HB_CSTR);
+    pid_t c = [VMRootHelper spawnSelfDaemon];
+    UIAlertController *alert = [UIAlertController
+        alertControllerWithTitle:TR(@"Diag_Daemon")
+                         message:(c > 0)
+                                     ? [NSString
+                                           stringWithFormat:@"restarted pid=%d",
+                                                           c]
+                                     : @"spawn FAILED"
+                     preferredStyle:UIAlertControllerStyleAlert];
+    [alert addAction:[UIAlertAction actionWithTitle:TR(@"Btn_OK")
+                                              style:UIAlertActionStyleCancel
+                                            handler:nil]];
+    [self presentViewController:alert animated:YES completion:nil];
+  } else if (row == 3) {
     // 复制 SSH 连接串 (ip:port + 完整命令模板)
     NSString *ip = VMDeviceIPv4();
     if (!ip) {

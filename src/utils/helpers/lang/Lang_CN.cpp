@@ -219,6 +219,8 @@ std::map<std::string, std::string> Lang_CN::getStrings() {
     {"Set_Theme", "主题"},
     {"Set_Lang", "Language"},
     {"Diag_Sec_Title", "诊断"},
+    {"Diag_Daemon", "Root 守护进程"},
+    {"Diag_Daemon_Off", "未运行"},
     {"Diag_Bridge", "远程调试桥"},
     {"Diag_Bridge_On", "%d 个任务 · 最近: %@ (%@)"},
     {"Diag_Bridge_Off", "已关闭"},

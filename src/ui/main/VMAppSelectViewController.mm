@@ -1,6 +1,7 @@
 #import "../main/VMAppSelectViewController.h"
 #import "../../utils/helpers/VMUIHelper.h"
 #import "../../utils/VMLog.h"
+#import "../../utils/VMRootHelper.h"
 #import "../patch/VMBackupListViewController.h"
 #import "../memory/VMProcessAuditViewController.h"
 #import "../../utils/managers/VMBackupManager.h"
@@ -220,7 +221,9 @@ typedef NS_ENUM(NSInteger, VMAppFilterMode) {
 
   for (int i = 0; i < count; i++) {
     pid_t pid = procs[i].kp_proc.p_pid;
-    if (pid <= 0 || pid == myPid) continue;
+    if (pid <= 0) continue; // P0.6: VM 自己也不再隐藏 (想自杀随时能杀)
+
+    uid_t procUid = procs[i].kp_eproc.e_ucred.cr_uid;
 
     NSString *procName =
         [NSString stringWithUTF8String:procs[i].kp_proc.p_comm];
@@ -254,6 +257,8 @@ typedef NS_ENUM(NSInteger, VMAppFilterMode) {
     NSDictionary *item = @{
       @"name" : displayName ?: (procName ?: @"Unknown"),
       @"pid" : @(pid),
+      @"uid" : @(procUid),
+      @"isSelf" : @(pid == myPid),
       @"path" : fullPath ?: @"",
       @"bid" : bundleID ?: @"",
       @"ver" : version ?: @"",
@@ -480,6 +485,8 @@ typedef NS_ENUM(NSInteger, VMAppFilterMode) {
 
   NSString *displayName = item[@"name"];
   if (isStarred) displayName = [NSString stringWithFormat:@"⭐ %@", displayName];
+  if ([item[@"isSelf"] boolValue])
+    displayName = [NSString stringWithFormat:@"◎ %@", displayName]; // VM 自己
 
   cell.textLabel.text = displayName;
   cell.textLabel.font = [UIFont systemFontOfSize:17 weight:UIFontWeightMedium];
@@ -495,6 +502,18 @@ typedef NS_ENUM(NSInteger, VMAppFilterMode) {
 
   cell.detailTextLabel.text = detail;
   cell.detailTextLabel.textColor = [UIColor systemGrayColor];
+
+  // P0.6: 权限级别标注 — uid 0 一眼可见
+  if ([item[@"uid"] intValue] == 0) {
+    NSMutableAttributedString *s =
+        [[NSMutableAttributedString alloc]
+            initWithString:[NSString stringWithFormat:@"[ROOT] %@",
+                                                       detail ?: @""]];
+    [s addAttribute:NSForegroundColorAttributeName
+              value:[UIColor systemRedColor]
+              range:NSMakeRange(0, 6)];
+    cell.detailTextLabel.attributedText = s;
+  }
 
   BOOL isSystem = (self.filterMode == VMAppFilterSystem);
   NSString *iconPath = (self.filterMode == VMAppFilterAll) ? item[@"path"] : item[@"path"];
@@ -662,6 +681,13 @@ typedef NS_ENUM(NSInteger, VMAppFilterMode) {
           kern_return_t termKr = task_terminate(task);
           mach_port_deallocate(mach_task_self(), task);
           VMLOG_INFO(@"[kill-ui] task_terminate kr=%d", termKr);
+          if (termKr == KERN_SUCCESS)
+            rc = 0;
+        }
+        if (rc != 0) {
+          // P0.5: 跨 uid 硬墙 — persona spawn one-shot root 杀手
+          int rootRc = [VMRootHelper spawnRootKill:pid];
+          VMLOG_INFO(@"[kill-ui] rootspawn rc=%d", rootRc);
         }
       }
       dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)),

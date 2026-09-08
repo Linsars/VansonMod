@@ -194,6 +194,12 @@ kern_return_t mach_vm_write(vm_map_t, mach_vm_address_t, vm_offset_t,
 }
 
 - (void)toast:(NSString *)msg {
+  // P0.6: daemon 无 UI — toast 降级为日志
+  extern int vmDaemonMode;
+  if (vmDaemonMode) {
+    [self _rawLog:[NSString stringWithFormat:@"[toast] %@", msg]];
+    return;
+  }
   dispatch_async(dispatch_get_main_queue(), ^{
     UIAlertController *alert = [UIAlertController
         alertControllerWithTitle:TR(@"Script_Title_Default")
