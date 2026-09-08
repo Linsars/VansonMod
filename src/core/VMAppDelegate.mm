@@ -15,6 +15,7 @@
 #define TR(key) ([[VMLocalization shared] localizedString:key])
 
 @interface VMAppDelegate ()
+<UIApplicationDelegate, AVAudioPlayerDelegate>
 @property(nonatomic, strong) AVAudioPlayer *backgroundPlayer;
 - (void)checkAppReinstallOrUpdate;
 - (void)setupDefaultSettingsIfNeeded;
@@ -109,21 +110,28 @@
   }
 }
 
-- (void)startKeepAlive {
-  [[AVAudioSession sharedInstance]
-      setCategory:AVAudioSessionCategoryPlayback
-      withOptions:AVAudioSessionCategoryOptionMixWithOthers
-            error:nil];
-  [[AVAudioSession sharedInstance] setActive:YES error:nil];
+// 播完即停兜底 (短音频循环在部分系统上不生效)
+- (void)audioPlayerDidFinishPlaying:(AVAudioPlayer *)player
+                       successfully:(BOOL)flag {
+  [player play];
+}
 
+- (void)startKeepAlive {
+  AVAudioSession *session = [AVAudioSession sharedInstance];
+  [session setCategory:AVAudioSessionCategoryPlayback
+           withOptions:AVAudioSessionCategoryOptionMixWithOthers
+                 error:nil];
+  [session setActive:YES error:nil];
+
+  // P0.2: 0.5s 静音 PCM — 旧版 144B(0.57ms)numberOfLoops=-1 播完一帧即停
+  // (真机实锤: enter background player=0), 后台断言从未建立
   unsigned char wavHeader[] = {
-      0x52, 0x49, 0x46, 0x46, 0x24, 0x00, 0x00, 0x00, 0x57, 0x41, 0x56,
+      0x52, 0x49, 0x46, 0x46, 0x24, 0xB9, 0x05, 0x00, 0x57, 0x41, 0x56,
       0x45, 0x66, 0x6D, 0x74, 0x20, 0x10, 0x00, 0x00, 0x00, 0x01, 0x00,
       0x01, 0x00, 0x44, 0xAC, 0x00, 0x00, 0x88, 0x58, 0x01, 0x00, 0x02,
-      0x00, 0x10, 0x00, 0x64, 0x61, 0x74, 0x61, 0x00, 0x00, 0x00, 0x00};
-  NSMutableData *soundData = [NSMutableData dataWithBytes:wavHeader
-                                                   length:sizeof(wavHeader)];
-  [soundData appendData:[NSMutableData dataWithLength:100]];
+      0x00, 0x10, 0x00, 0x64, 0x61, 0x74, 0x61, 0x00, 0xB9, 0x05, 0x00};
+  NSMutableData *soundData = [NSMutableData dataWithBytes:wavHeader length:44];
+  [soundData appendData:[NSMutableData dataWithLength:44100 * 2]];
 
   NSError *err;
   self.backgroundPlayer = [[AVAudioPlayer alloc] initWithData:soundData
@@ -131,9 +139,28 @@
   if (self.backgroundPlayer) {
     self.backgroundPlayer.numberOfLoops = -1;
     self.backgroundPlayer.volume = 0.01;
+    self.backgroundPlayer.delegate = self;
     [self.backgroundPlayer prepareToPlay];
     [self.backgroundPlayer play];
   }
+
+  // 终极兜底: 10s 巡检, 不管什么原因停了都拉起来
+  __weak VMAppDelegate *wself = self;
+  dispatch_async(dispatch_get_main_queue(), ^{
+    [NSTimer scheduledTimerWithTimeInterval:10.0
+                                    repeats:YES
+                                      block:^(NSTimer *t) {
+                                        VMAppDelegate *s = wself;
+                                        if (!s || !s.backgroundPlayer)
+                                          return;
+                                        if (!s.backgroundPlayer.isPlaying) {
+                                          [s.backgroundPlayer play];
+                                          VMLOG_DEBUG(
+                                              @"[keepalive] watchdog replay "
+                                              @"(was stopped)");
+                                        }
+                                      }];
+  });
 }
 
 - (void)applicationDidEnterBackground:(UIApplication *)application {
