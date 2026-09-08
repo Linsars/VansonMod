@@ -18,7 +18,7 @@ static NSTimer *vmDaemonHeartbeatTimer = nil;
 int vmDaemonMode = 0; // VMScriptManager toast 等查此标志在 daemon 中禁 UI
 
 static void vmDaemonHeartbeat(void) {
-  FILE *f = fopen(VM_DAEMON_HEARTBEAT, "w");
+  FILE *f = fopen(VM_DAEMON_HB_CSTR, "w");
   if (f) {
     fprintf(f, "pid=%d\nbuild=" VM_BUILD_COMMIT "\nboot=%lld\n", getpid(),
             (long long)time(NULL));
