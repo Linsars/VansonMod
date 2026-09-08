@@ -1001,6 +1001,19 @@ static NSString *VMDeviceIPv4(void) {
                                             handler:nil]];
     [self presentViewController:alert animated:YES completion:nil];
   } else if (row == 4) {
+    // 复制收件箱绝对路径 (SSH scp 用)
+    NSString *dir = [VMInboxBridge inboxPath];
+    [[UIPasteboard generalPasteboard] setString:dir];
+    UIAlertController *alert =
+        [UIAlertController alertControllerWithTitle:TR(@"Diag_Path")
+                                            message:dir
+                                     preferredStyle:
+                                         UIAlertControllerStyleAlert];
+    [alert addAction:[UIAlertAction actionWithTitle:TR(@"Btn_OK")
+                                              style:UIAlertActionStyleCancel
+                                            handler:nil]];
+    [self presentViewController:alert animated:YES completion:nil];
+  } else if (row == 5) {
     // 清理诊断数据: 桥产物 + 日志一次清空
     NSUInteger arts = [VMInboxBridge purgeArtifacts];
     uint64_t bytes = [VMLog purgeAll];
@@ -1013,7 +1026,7 @@ static NSString *VMDeviceIPv4(void) {
                                               style:UIAlertActionStyleCancel
                                             handler:nil]];
     [self presentViewController:alert animated:YES completion:nil];
-  } else if (row == 5) {
+  } else if (row == 6) {
     // 导出日志 (AirDrop/文件): 拿系统分享面板
     NSString *path = [VMLog logFilePath];
     if (![[NSFileManager defaultManager] fileExistsAtPath:path]) {
@@ -1043,19 +1056,6 @@ static NSString *VMDeviceIPv4(void) {
             initWithActivityItems:@[ [NSURL fileURLWithPath:path] ]
                             applicationActivities:nil];
     [vc presentViewController:share animated:YES completion:nil];
-  } else if (row == 2) {
-    // 复制收件箱绝对路径 (SSH scp 用)
-    NSString *dir = [VMInboxBridge inboxPath];
-    [[UIPasteboard generalPasteboard] setString:dir];
-    UIAlertController *alert =
-        [UIAlertController alertControllerWithTitle:TR(@"Diag_Path")
-                                            message:dir
-                                     preferredStyle:
-                                         UIAlertControllerStyleAlert];
-    [alert addAction:[UIAlertAction actionWithTitle:TR(@"Btn_OK")
-                                              style:UIAlertActionStyleCancel
-                                            handler:nil]];
-    [self presentViewController:alert animated:YES completion:nil];
   }
 }
 
