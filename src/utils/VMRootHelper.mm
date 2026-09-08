@@ -5,7 +5,17 @@
 #import <spawn.h>
 #import <sys/wait.h>
 #import <mach/mach.h>
+#import <mach-o/dyld.h>
 #import "VMLog.h"
+
+// persona API 不在公开 SDK 头文件 — 符号在 libsystem_kernel 里, 手动声明 (值抄 XNU spawn_internal.h)
+extern "C" {
+int posix_spawnattr_set_persona_np(posix_spawnattr_t *, uid_t, uint32_t);
+int posix_spawnattr_set_persona_uid_np(posix_spawnattr_t *, uid_t);
+int posix_spawnattr_set_persona_gid_np(posix_spawnattr_t *, gid_t);
+}
+#define POSIX_SPAWN_PERSONA_FLAGS_NONE   0x00000001
+#define POSIX_SPAWN_PERSONA_FLAGS_VERIFY 0x00010000
 
 extern char **environ;
 
