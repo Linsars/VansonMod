@@ -14,9 +14,6 @@
 // 职责: 唯一职责 = 远程调试桥. 无 UI 无 scene, 音频保活不需要 (root 不受
 // app 生命周期管辖). 心跳文件 5s 一跳; 收到 stop 文件 → 清场自杀.
 
-#define VM_DAEMON_HEARTBEAT "/var/mobile/Documents/vm_daemon.heartbeat"
-#define VM_DAEMON_STOP      "/var/mobile/Documents/vm_daemon.stop"
-
 static NSTimer *vmDaemonHeartbeatTimer = nil;
 int vmDaemonMode = 0; // VMScriptManager toast 等查此标志在 daemon 中禁 UI
 
