@@ -223,6 +223,7 @@ std::map<std::string, std::string> Lang_CN::getStrings() {
     {"Diag_Bridge_On", "%d 个任务 · 最近: %@ (%@)"},
     {"Diag_Bridge_Off", "已关闭"},
     {"Diag_Debug_Log", "详细日志"},
+    {"Diag_SSH", "SSH 连接 (点击复制)"},
     {"Diag_Path", "收件箱路径 (点击复制)"},
     {"Diag_Clean", "清理诊断数据"},
     {"Diag_Clean_Done", "已清理"},

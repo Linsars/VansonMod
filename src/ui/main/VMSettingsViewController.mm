@@ -9,6 +9,38 @@
 #import "../../utils/VMLog.h"
 #import "../../utils/managers/VMInboxBridge.h"
 #import <UIKit/UIKit.h>
+#import <ifaddrs.h>
+#import <arpa/inet.h>
+
+// 本机真实 IPv4: Wi-Fi(en*) 优先, 蜂窝(pdp_ip*)兜底 — Surge TUN 骗不了 getifaddrs
+static NSString *VMDeviceIPv4(void) {
+  struct ifaddrs *addrs = NULL;
+  if (getifaddrs(&addrs) != 0)
+    return nil;
+  NSString *result = nil;
+  for (int pass = 0; pass < 2 && !result; pass++) {
+    for (struct ifaddrs *ifa = addrs; ifa; ifa = ifa->ifa_next) {
+      if (!ifa->ifa_addr || ifa->ifa_addr->sa_family != AF_INET)
+        continue;
+      NSString *name = [NSString stringWithUTF8String:ifa->ifa_name];
+      BOOL isWifi = [name hasPrefix:@"en"];
+      BOOL isCell = [name hasPrefix:@"pdp_ip"];
+      if (pass == 0 && !isWifi)
+        continue;
+      if (pass == 1 && !isCell)
+        continue;
+      char buf[INET_ADDRSTRLEN] = {0};
+      struct sockaddr_in *sa = (struct sockaddr_in *)ifa->ifa_addr;
+      inet_ntop(AF_INET, &sa->sin_addr, buf, sizeof(buf));
+      if (strcmp(buf, "127.0.0.1") != 0) {
+        result = [NSString stringWithUTF8String:buf];
+        break;
+      }
+    }
+  }
+  freeifaddrs(addrs);
+  return result;
+}
 #import <objc/message.h>
 #import <objc/runtime.h>
 
@@ -543,7 +575,7 @@
   if (section == 1)
     return 5;
   if (section == 3)
-    return 5;
+    return 6;
   return 7;   
 }
 
@@ -788,18 +820,28 @@
     break;
   }
   case 2: {
+    // SSH 自报家门: ip:2222 点击复制连接串 (TRL 教训: 设备 IP 漂移坑死人)
+    cell.textLabel.text = TR(@"Diag_SSH");
+    NSString *ip = VMDeviceIPv4();
+    cell.detailTextLabel.text = ip ? [NSString stringWithFormat:@"%s:%d", ip.UTF8String, 2222]
+                                   : @"no ip";
+    cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
+    cell.selectionStyle = UITableViewCellSelectionStyleDefault;
+    break;
+  }
+  case 3: {
     cell.textLabel.text = TR(@"Diag_Path");
     cell.detailTextLabel.text = @"Documents/vm_inbox";
     cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
     cell.selectionStyle = UITableViewCellSelectionStyleDefault;
     break;
   }
-  case 3:
+  case 4:
     cell.textLabel.text = TR(@"Diag_Clean");
     cell.textLabel.textColor = [UIColor systemRedColor];
     cell.selectionStyle = UITableViewCellSelectionStyleDefault;
     break;
-  case 4:
+  case 5:
     cell.textLabel.text = TR(@"Diag_Export");
     cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
     cell.selectionStyle = UITableViewCellSelectionStyleDefault;
@@ -879,7 +921,36 @@
 #pragma mark - Diagnostics Section (P0)
 
 - (void)handleDiagTap:(NSInteger)row {
-  if (row == 3) {
+  if (row == 2) {
+    // 复制 SSH 连接串 (ip:port + 完整命令模板)
+    NSString *ip = VMDeviceIPv4();
+    if (!ip) {
+      UIAlertController *bad = [UIAlertController
+          alertControllerWithTitle:TR(@"Diag_SSH")
+                           message:@"no IPv4 address (Wi-Fi off?)"
+                    preferredStyle:UIAlertControllerStyleAlert];
+      [bad addAction:[UIAlertAction actionWithTitle:TR(@"Btn_OK")
+                                              style:UIAlertActionStyleCancel
+                                            handler:nil]];
+      [self presentViewController:bad animated:YES completion:nil];
+      return;
+    }
+    NSString *cmd = [NSString stringWithFormat:
+        @"sshpass -p 0 ssh -p %d mobile@%@", 2222, ip];
+    [[UIPasteboard generalPasteboard] setString:cmd];
+    UIAlertController *alert =
+        [UIAlertController alertControllerWithTitle:TR(@"Diag_SSH")
+                                            message:[NSString
+                                                stringWithFormat:
+                                                    @"%s:%d\n\n%@",
+                                                    ip.UTF8String, 2222, cmd]
+                                     preferredStyle:
+                                         UIAlertControllerStyleAlert];
+    [alert addAction:[UIAlertAction actionWithTitle:TR(@"Btn_OK")
+                                              style:UIAlertActionStyleCancel
+                                            handler:nil]];
+    [self presentViewController:alert animated:YES completion:nil];
+  } else if (row == 4) {
     // 清理诊断数据: 桥产物 + 日志一次清空
     NSUInteger arts = [VMInboxBridge purgeArtifacts];
     uint64_t bytes = [VMLog purgeAll];
@@ -892,7 +963,7 @@
                                               style:UIAlertActionStyleCancel
                                             handler:nil]];
     [self presentViewController:alert animated:YES completion:nil];
-  } else if (row == 4) {
+  } else if (row == 5) {
     // 导出日志 (AirDrop/文件): 拿系统分享面板
     NSString *path = [VMLog logFilePath];
     if (![[NSFileManager defaultManager] fileExistsAtPath:path]) {

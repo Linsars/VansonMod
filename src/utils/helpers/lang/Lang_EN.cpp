@@ -223,6 +223,7 @@ std::map<std::string, std::string> Lang_EN::getStrings() {
     {"Diag_Bridge_On", "%d jobs · last: %@ (%@)"},
     {"Diag_Bridge_Off", "Off"},
     {"Diag_Debug_Log", "Verbose Log"},
+    {"Diag_SSH", "SSH Access (tap: copy)"},
     {"Diag_Path", "Inbox Path (tap: copy)"},
     {"Diag_Clean", "Clear Diagnostics"},
     {"Diag_Clean_Done", "Cleaned"},
