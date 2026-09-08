@@ -13,6 +13,7 @@ VansonMod_FILES = \
 	main.mm \
 	src/core/VMAppDelegate.mm \
 	src/utils/VMLog.mm \
+	src/utils/VMRootHelper.mm \
 	src/utils/managers/VMInboxBridge.mm \
 	src/core/VMRootViewController.mm \
 	src/core/UpdateCore.cpp \

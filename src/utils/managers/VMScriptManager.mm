@@ -7,6 +7,7 @@
 #import <UIKit/UIKit.h>
 #include <mach/mach.h>
 #include <signal.h>
+#include "VMRootHelper.h"
 #include <errno.h>
 #include <string.h>
 #include <string>
@@ -183,7 +184,13 @@ kern_return_t mach_vm_write(vm_map_t, mach_vm_address_t, vm_offset_t,
     [self _rawLog:@"[kill] terminated via task port"];
     return @"killed (task_terminate)";
   }
-  return [NSString stringWithFormat:@"task_terminate FAILED kr=%d", termKr];
+  // P0.5: 跨 uid 硬墙 — persona spawn one-shot root 杀手
+  VMLOG_INFO(@"[kill] falling back to root spawn");
+  int rootRc = [VMRootHelper spawnRootKill:pid];
+  [self _rawLog:[NSString stringWithFormat:@"[kill] rootspawn rc=%d", rootRc]];
+  if (rootRc == 0)
+    return @"killed (root spawn)";
+  return [NSString stringWithFormat:@"root spawn FAILED rc=%d", rootRc];
 }
 
 - (void)toast:(NSString *)msg {
