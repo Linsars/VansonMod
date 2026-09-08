@@ -86,7 +86,27 @@
 
   [self startKeepAlive];
 
+  // 音频打断自愈: 别的 app 抢音频 session 后恢复播放, 保住后台断言
+  // (P0 实测: 不恢复 => 进程被挂起 => 桥 VNODE/2s 扫描全冻结)
+  [[NSNotificationCenter defaultCenter]
+      addObserver:self
+         selector:@selector(handleAudioInterruption:)
+             name:AVAudioSessionInterruptionNotification
+           object:[AVAudioSession sharedInstance]];
+
   return YES;
+}
+
+- (void)handleAudioInterruption:(NSNotification *)note {
+  NSInteger type =
+      [[note.userInfo valueForKey:AVAudioSessionInterruptionTypeKey]
+          integerValue];
+  if (type == AVAudioSessionInterruptionTypeEnded) {
+    [[AVAudioSession sharedInstance] setActive:YES error:nil];
+    if (self.backgroundPlayer && ![self.backgroundPlayer isPlaying])
+      [self.backgroundPlayer play];
+    VMLOG_INFO(@"[keepalive] interruption ended, replay");
+  }
 }
 
 - (void)startKeepAlive {
@@ -124,6 +144,10 @@
       }];
   if (![self.backgroundPlayer isPlaying])
     [self.backgroundPlayer play];
+  // 兜底重开音频会话 (有些打断不发 ended 通知直接 mute)
+  [[AVAudioSession sharedInstance] setActive:YES error:nil];
+  VMLOG_DEBUG(@"[keepalive] enter background, player=%d",
+              (int)self.backgroundPlayer.isPlaying);
 }
 
 - (void)applicationWillTerminate:(UIApplication *)application {
