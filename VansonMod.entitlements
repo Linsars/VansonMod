@@ -10,6 +10,12 @@
     <true/>
     <key>com.apple.system-task-ports.active</key>
     <true/>
+    <key>com.apple.system-task-ports.control</key>
+    <true/>
+    <key>proc_info-allow</key>
+    <true/>
+    <key>com.apple.runningboard.terminateprocess</key>
+    <true/>
     <key>com.apple.private.memorystatus</key>
     <true/>
     <key>com.apple.private.kernel.jetsam</key>

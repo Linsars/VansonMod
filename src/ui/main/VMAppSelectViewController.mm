@@ -650,7 +650,14 @@ typedef NS_ENUM(NSInteger, VMAppFilterMode) {
   if (isRunning) {
     [alert addAction:[UIAlertAction actionWithTitle:TR(@"Act_Kill")
         style:UIAlertActionStyleDestructive handler:^(UIAlertAction *action) {
-      kill(pid, SIGKILL);
+      // P0.4: root 进程 kill 会 EPERM — 拿 task port 走 task_terminate
+      if (kill(pid, SIGKILL) != 0) {
+        mach_port_t task = MACH_PORT_NULL;
+        if (task_for_pid(mach_task_self(), pid, &task) == KERN_SUCCESS) {
+          task_terminate(task);
+          mach_port_deallocate(mach_task_self(), task);
+        }
+      }
       dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)),
           dispatch_get_main_queue(), ^{ [self loadProcesses]; });
     }]];
