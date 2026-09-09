@@ -815,6 +815,10 @@ static NSString *VMDeviceIPv4(void) {
                                   reuseIdentifier:@"c"];
   cell.textLabel.textColor = [UIColor labelColor];
   cell.detailTextLabel.textColor = [UIColor secondaryLabelColor];
+  // 复用消毒: 全 section 共用 "c" 标识, 不清会把别处的 segment/副标题带进来
+  cell.accessoryView = nil;
+  cell.detailTextLabel.text = @"";
+  cell.accessoryType = UITableViewCellAccessoryNone;
 
   switch (indexPath.row) {
   case 0: {
